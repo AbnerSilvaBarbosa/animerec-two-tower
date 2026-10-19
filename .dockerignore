@@ -1,0 +1,7 @@
+.venv
+data
+artifacts
+archive.zip
+__pycache__
+*.pyc
+.git

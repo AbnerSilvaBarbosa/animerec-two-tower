@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AnimeRec · Two-Tower + TensorFlow</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  main{max-width:1080px;margin:0 auto;padding:24px 28px 80px}
+  .steps{display:flex;gap:8px;margin:6px 0 22px;flex-wrap:wrap}
+  .steps button{flex:1;min-width:150px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--mute);cursor:pointer;font:inherit;transition:.2s;position:relative;overflow:hidden}
+  .steps button b{display:block;color:var(--fg);font-size:14px}
+  .steps button small{font-size:12px}
+  .steps button:hover{border-color:#34406a}
+  .steps button.on{border-color:var(--acc);background:linear-gradient(180deg,#1b2040,var(--card))}
+  .steps button .dot{position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%;background:var(--line)}
+  .steps button .dot.done{background:var(--ok);box-shadow:0 0 10px #4ade8088}
+  .steps button .dot.running{background:var(--warn);animation:pulse 1s infinite}
+  .steps button .dot.error{background:var(--err)}
+  @keyframes pulse{50%{transform:scale(1.5);opacity:.5}}
+  h2{margin:0 0 4px;font-size:17px;letter-spacing:-.01em} h3{margin:0 0 10px;font-size:13px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+  .row{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-top:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:14px}
+  .stat{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:12px 14px;animation:rise .5s both}
+  .stat b{display:block;font-size:22px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.stat span{color:var(--mute);font-size:12px}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:820px){.two{grid-template-columns:1fr}}
+  .hidden{display:none!important}
+  /* barras */
+  .hbar{display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:5px 0;font-size:13px}
+  .hbar .t{height:10px;background:var(--bg);border-radius:6px;overflow:hidden}
+  .hbar .t i{display:block;height:100%;width:0;border-radius:6px;background:var(--grad);transition:width .9s cubic-bezier(.2,.8,.2,1)}
+  .hbar span:last-child{text-align:right;color:var(--mute);font-variant-numeric:tabular-nums}
+  .vbars{display:flex;align-items:flex-end;gap:6px;height:150px;margin-top:10px}
+  .vbars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;font-size:11px;color:var(--mute)}
+  .vbars i{display:block;width:100%;border-radius:5px 5px 0 0;background:#3a4570;height:0;transition:height .9s cubic-bezier(.2,.8,.2,1)}
+  .vbars i.like{background:linear-gradient(180deg,var(--hot),#ff6e8a)}
+  /* split */
+  .funnel .f{height:30px;border-radius:8px;background:var(--grad);color:#0a0d1a;font-weight:600;font-size:12px;display:flex;align-items:center;padding:0 12px;margin:6px 0;width:0;transition:width 1s cubic-bezier(.2,.8,.2,1);white-space:nowrap;min-width:max-content}
+  .funnel .f.b{background:linear-gradient(120deg,#ff9f6e,#ff6e8a)}.funnel .f.c{background:linear-gradient(120deg,#4ade80,#4cc9f0)}
+  .splitbar{display:flex;height:34px;border-radius:9px;overflow:hidden;margin-top:6px;font-size:12px;font-weight:600;color:#0a0d1a}
+  .splitbar div{display:flex;align-items:center;justify-content:center;transition:flex .9s cubic-bezier(.2,.8,.2,1);flex:0}
+  .splitbar .tr{background:var(--acc)}.splitbar .te{background:var(--hot)}
+  .cells{display:grid;grid-template-columns:repeat(24,1fr);gap:4px;margin-top:8px}
+  .cells i{aspect-ratio:1;border-radius:4px;background:var(--line);transition:background .4s,transform .4s;transform:scale(.4)}
+  .cells.on i{transform:scale(1)}
+  .cells.on i.h{background:var(--acc2)}.cells.on i.g{background:var(--hot)}
+  .leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-top:10px}.leg b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  /* train */
+  .lane{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .lane .lbl{width:64px;font-size:12px;color:var(--mute);font-weight:600}
+  .node{font-size:12px;padding:5px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--line);color:var(--mute);transition:.3s;font-family:var(--mono)}
+  .node.ad{border-color:#4ade8055;color:#9be7b6}
+  .node.core{color:#c9d2ff;border-color:#8b7cff55}
+  .arrow{color:var(--line)}
+  .running-train .node{animation:glow 1.6s infinite}
+  .running-train .node:nth-child(2n){animation-delay:.2s}.running-train .node:nth-child(3n){animation-delay:.5s}
+  @keyframes glow{50%{box-shadow:0 0 14px #8b7cff66;border-color:var(--acc)}}
+  .bar{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:14px}.bar i{display:block;height:100%;background:var(--grad);width:0;transition:width .4s;border-radius:4px}
+  canvas.ch{width:100%;height:210px;display:block}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--mute);flex-wrap:wrap}.legend b{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:3px}
+  table.ep{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px;font-variant-numeric:tabular-nums}
+  table.ep th{color:var(--mute);font-weight:500;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}table.ep td{text-align:right;padding:6px 8px;border-bottom:1px solid #1a2132}
+  table.ep th:first-child,table.ep td:first-child{text-align:left}
+  pre.log{background:#070a10;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:200px;overflow:auto;font:12px/1.55 var(--mono);margin:12px 0 0;white-space:pre-wrap;color:#9aa6c4}
+  /* eval */
+  .gauges{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;align-items:center}
+  .gauge{text-align:center}.gauge svg{width:100%;max-width:240px}
+  .gauge .arc{transition:stroke-dasharray 1.4s cubic-bezier(.2,.8,.2,1)}
+  .gauge big{display:block;font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:-34px;font-variant-numeric:tabular-nums}
+  .gauge small{color:var(--mute);display:block;margin-top:4px}
+  .cmp .hbar{grid-template-columns:130px 1fr 60px}
+  .cmp .hbar.pop .t i{background:#56608a}.cmp .hbar.mod .t i{background:linear-gradient(90deg,var(--ok),var(--acc2))}
+  .note{border:1px solid var(--line);border-left:3px solid var(--warn);background:#fbbf2410;border-radius:10px;padding:12px 14px;font-size:13px;margin-top:14px}
+  .note.ok{border-left-color:var(--ok);background:#4ade8010}
+  /* map */
+  .mapwrap{position:relative}
+  canvas.map{width:100%;height:480px;display:block;background:radial-gradient(circle at 50% 50%,#141a2c,#0a0d14);border:1px solid var(--line);border-radius:12px;cursor:crosshair}
+  .tip{position:absolute;pointer-events:none;background:#05070cee;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;white-space:nowrap;transform:translate(12px,-120%);opacity:0;transition:opacity .12s}
+  .pipe{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+  .pipe .s{background:var(--bg);border:1px solid var(--line);padding:7px 12px;border-radius:9px;font-size:12.5px;animation:rise .5s both}
+  .pipe .s b{color:var(--acc2)}
+  .status{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border-radius:99px;font-size:13px;border:1px solid var(--line);background:var(--bg)}
+  .status::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--warn)}.status.pg::before{background:var(--ok);box-shadow:0 0 10px #4ade8088}
+  pre.cmd{background:#070a10;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:12.5px var(--mono);color:#c9d2ff;margin:8px 0 0;user-select:all}
+  /* recomendar */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .sug{border:1px solid var(--line);border-radius:8px;margin-top:4px;background:var(--bg);overflow:hidden}.sug div{padding:7px 12px;cursor:pointer}.sug div:hover{background:var(--card2)}
+  .recs{display:grid;gap:10px;margin-top:14px}
+  .a{display:grid;grid-template-columns:34px 1fr;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg);animation:rise .5s both;transition:border-color .2s}
+  .a:hover,.a.hl{border-color:var(--acc)}
+  .a .rk{width:34px;height:34px;border-radius:10px;background:var(--card2);display:grid;place-items:center;font-weight:700;color:var(--acc2)}
+  .a b{font-size:15px}.a small{color:var(--mute)}
+  .a .sc{display:flex;align-items:center;gap:10px;margin:6px 0}.a .sc .t{flex:1;height:6px;background:var(--card2);border-radius:4px;overflow:hidden}.a .sc .t i{display:block;height:100%;background:var(--grad);width:0;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+  .a .sc em{font-style:normal;font-variant-numeric:tabular-nums;color:var(--acc2);font-weight:600;font-size:13px;width:44px;text-align:right}
+  .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;margin:2px 4px 0 0;background:#8b7cff1f;color:#b9b0ff}
+  .tag.m{background:#4ade8022;color:#8be9ad}
+  .heat{display:grid;grid-template-columns:repeat(64,1fr);gap:1px;height:12px;border-radius:4px;overflow:hidden;margin-top:6px}
+  .heat i{display:block}
+  .uvec{margin-top:16px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><i></i>AnimeRec</div>
+  <span class="mute" style="font-size:13px">Two-Tower · TensorFlow/Keras · pgvector</span>
+  <div class="links"><a class="on" href="/">Aplicação</a><a href="/learn">Entenda o projeto ↗</a></div>
+</div>
+<main>
+<div class="steps" id="tabs">
+  <button data-t="data" class="on"><span class="dot" id="d-prepare"></span><b>1 · Dados e split</b><small>limpar e separar</small></button>
+  <button data-t="train"><span class="dot" id="d-train"></span><b>2 · Treino</b><small>adapt + fit</small></button>
+  <button data-t="eval"><span class="dot" id="d-evaluate"></span><b>3 · Teste</b><small>usuários inéditos</small></button>
+  <button data-t="index"><span class="dot" id="d-index"></span><b>4 · Vetorizar</b><small>embeddings + pgvector</small></button>
+  <button data-t="use"><b>5 · Recomendar</b><small>seu perfil → animes</small></button>
+</div>
+
+<!-- 1 · DADOS -->
+<section id="t-data">
+  <div class="card"><h2>Extrair, limpar e separar treino/teste</h2>
+    <p class="mute" style="margin:4px 0 0">Descompacta o zip, lê o CSV cru e faz o split por usuário <b>antes</b> de qualquer cálculo (evita <i>data leakage</i>). Dentro de cada usuário, metade das notas vira histórico (perfil) e metade vira alvo.</p>
+    <div class="row"><label>Usuários na amostra<input id="n_users" type="number" value="15000" min="500" step="500"></label>
+    <button class="btn" id="b-prepare">Processar dados</button></div><div id="stats"></div></div>
+  <div class="two">
+    <div class="card"><h3>Funil de dados</h3><div class="funnel" id="funnel"><span class="mute">Processe os dados para ver o funil.</span></div></div>
+    <div class="card"><h3>Split por usuário</h3>
+      <div class="splitbar" id="splitbar"><div class="tr">treino</div><div class="te">teste</div></div>
+      <div class="mute" style="font-size:12px;margin-top:6px" id="splitnote">&nbsp;</div>
+      <h3 style="margin-top:18px">Dentro de cada usuário (50 / 50)</h3>
+      <div class="cells" id="cells"></div>
+      <div class="leg"><span><b style="background:var(--acc2)"></b>histórico → monta o perfil</span><span><b style="background:var(--hot)"></b>alvo → vira exemplo de treino</span></div>
+    </div>
+  </div>
+  <div class="two">
+    <div class="card"><h3>Notas dadas pelos usuários</h3><div class="vbars" id="rhist"></div>
+      <div class="leg"><span><b style="background:var(--hot)"></b>nota ≥ 8 = "gostou" (label 1)</span><span><b style="background:#3a4570"></b>nota &lt; 8 (label 0)</span></div></div>
+    <div class="card"><h3>Gêneros mais comuns no catálogo</h3><div id="genrebars"><span class="mute">carregando…</span></div></div>
+  </div>
+  <div class="card"><h3>Tipos de anime</h3><div id="typebars"></div></div>
+</section>
+
+<!-- 2 · TREINO -->
+<section id="t-train" class="hidden">
+  <div class="card"><h2>Adaptar camadas e treinar</h2>
+    <p class="mute" style="margin:4px 0 0"><code>.adapt()</code> só com o treino e fit do Two-Tower (loss binária: gostou = nota ≥ 8). O pré-processamento vive <b>dentro</b> do modelo.</p>
+    <div class="row"><label>Épocas<input id="epochs" type="number" value="5" min="1" max="50"></label>
+    <label>Batch<input id="batch" type="number" value="1024"></label><button class="btn" id="b-train">Treinar modelo</button></div>
+    <div class="bar"><i id="bar"></i></div><div class="mute" style="font-size:12px;margin-top:6px" id="eplabel"></div></div>
+  <div class="card" id="arch"><h3>Arquitetura (verde = camada com <code>.adapt()</code> no treino)</h3>
+    <div class="lane"><span class="lbl">usuário</span>
+      <span class="node">genre_profile</span><span class="node ad">Normalization(avg)</span><span class="node ad">log1p→Normalization(n)</span><span class="arrow">→</span><span class="node core">concat</span><span class="arrow">→</span><span class="node core">Dense 128</span><span class="arrow">→</span><span class="node core">Dense 64</span><span class="arrow">→</span><span class="node core">L2 norm = u</span></div>
+    <div class="lane"><span class="lbl">anime</span>
+      <span class="node ad">TextVectorization</span><span class="node ad">StringLookup</span><span class="node ad">log1p→Normalization</span><span class="arrow">→</span><span class="node core">concat</span><span class="arrow">→</span><span class="node core">Dense 128</span><span class="arrow">→</span><span class="node core">Dense 64</span><span class="arrow">→</span><span class="node core">L2 norm = v</span></div>
+    <div class="lane"><span class="lbl">saída</span><span class="node core">u · v = cosseno</span><span class="arrow">→</span><span class="node core">σ(a·cos + b), a ≥ 0</span><span class="arrow">→</span><span class="node ad">P(gostar)</span></div>
+  </div>
+  <div class="two">
+    <div class="card"><h3>Loss</h3><canvas class="ch" id="c-loss"></canvas><div class="legend"><span><b style="background:#f87171"></b>treino</span><span><b style="background:#fbbf24"></b>validação (usuários inéditos)</span></div></div>
+    <div class="card"><h3>AUC</h3><canvas class="ch" id="c-auc"></canvas><div class="legend"><span><b style="background:#8b7cff"></b>treino</span><span><b style="background:#4ade80"></b>validação</span></div></div>
+  </div>
+  <div class="card"><h3>Épocas</h3><table class="ep" id="eptable"></table><pre class="log" id="log">Aguardando…</pre></div>
+</section>
+
+<!-- 3 · TESTE -->
+<section id="t-eval" class="hidden">
+  <div class="card"><h2>Testar com usuários que o modelo nunca viu</h2>
+    <p class="mute" style="margin:4px 0 0">AUC/accuracy no teste e Recall@K: dos animes que o usuário gostou (e escondemos), quantos aparecem no top-K — comparado com a baseline "mais populares".</p>
+    <div class="row"><button class="btn" id="b-evaluate">Rodar teste</button></div></div>
+  <div class="card" id="evalbox"><span class="mute">Rode o teste para ver as métricas.</span></div>
+</section>
+
+<!-- 4 · VETORIZAR -->
+<section id="t-index" class="hidden">
+  <div class="card"><h2>Vetorizar o catálogo no Postgres</h2>
+    <p class="mute" style="margin:4px 0 0">A torre de itens gera um vetor de 64 dimensões por anime; gravamos em <code>pgvector</code> com índice HNSW (cosseno). Sem Postgres, a API cai para numpy.</p>
+    <div class="row"><button class="btn" id="b-index">Gerar vetores e indexar</button><span id="pgstatus"></span></div>
+    <div class="pipe" id="pipe"></div><div id="pgnote"></div></div>
+  <div class="card"><h3>Mapa dos animes no espaço de embeddings (PCA 2D)</h3>
+    <div class="mapwrap"><canvas class="map" id="map1"></canvas><div class="tip" id="tip1"></div></div>
+    <div class="leg" id="maplegend"></div>
+    <p class="mute" style="font-size:12.5px;margin:10px 0 0">Cada ponto é um anime; o tamanho é a popularidade. Animes parecidos ficam perto — é nessa vizinhança que a busca vetorial procura. Passe o mouse sobre os pontos.</p></div>
+</section>
+
+<!-- 5 · RECOMENDAR -->
+<section id="t-use" class="hidden">
+  <div class="card"><h2>Recomendar animes</h2><p class="mute" style="margin:4px 0 0" id="use-msg">Preencha seu perfil — a torre do usuário gera o vetor e buscamos os animes mais próximos.</p>
+    <div id="use-form" class="hidden">
+      <div class="mute" style="margin-top:14px">Gêneros favoritos</div><div class="chips" id="genres"></div>
+      <div class="mute" style="margin-top:14px">Animes que você gostou</div>
+      <input id="q" placeholder="Buscar anime…" style="width:100%;margin-top:6px" autocomplete="off"><div id="sug"></div><div class="chips" id="liked"></div>
+      <div class="row"><label>Nota média que você dá<input id="avg" type="number" value="7.5" min="1" max="10" step="0.5"></label>
+      <label>Animes assistidos (aprox.)<input id="nw" type="number" value="30" min="1"></label>
+      <label>Tipo<select id="type"><option value="">Qualquer</option></select></label>
+      <label>Nota mínima<input id="minr" type="number" value="6" min="0" max="10" step="0.5"></label>
+      <button class="btn" id="b-rec">Recomendar</button></div></div></div>
+  <div id="result" class="hidden">
+    <div class="card"><h3>Onde você caiu no mapa</h3>
+      <div class="mapwrap"><canvas class="map" id="map2" style="height:400px"></canvas><div class="tip" id="tip2"></div></div>
+      <p class="mute" style="font-size:12.5px;margin:10px 0 0">★ é o seu vetor (saída da torre do usuário). Os pontos com anel são os animes recomendados — os mais próximos de você no espaço.</p>
+      <div class="uvec"><h3>Seu vetor (64 dimensões)</h3><div class="heat" id="uheat"></div></div>
+      <div class="mute" id="backend" style="margin-top:12px;font-size:13px"></div></div>
+    <div class="recs" id="recs"></div>
+  </div>
+</section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id), fmt=n=>Number(n).toLocaleString('pt-BR');
+const PAL=['#8b7cff','#4cc9f0','#ff9f6e','#4ade80','#f472b6','#fbbf24','#60a5fa','#a3e635','#64748b'];
+const liked=new Map(), genres=new Set(); let snap={}, metaLoaded=false, mapData=null, mapTried=false, overviewLoaded=false, lastRec=null;
+
+/* ---------- navegação ---------- */
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>show(b.dataset.t));
+function show(t){
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
+  ['data','train','eval','index','use'].forEach(s=>$('t-'+s).classList.toggle('hidden',s!==t));
+  history.replaceState(null,'','#'+t);
+  if(t==='use')loadMeta(); if(t==='index')loadMap(); if(t==='train')drawCharts(); if(t==='data')loadOverview();
+  if(t==='use'&&lastRec)requestAnimationFrame(()=>maps.m2.draw());
+}
+async function post(url,body){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));alert(e.detail||'erro')}return r}
+const stage=(s,body)=>post('/api/pipeline/'+s,body).then(poll);
+$('b-prepare').onclick=()=>stage('prepare',{n_users:+$('n_users').value});
+$('b-train').onclick=()=>stage('train',{epochs:+$('epochs').value,batch_size:+$('batch').value});
+$('b-evaluate').onclick=()=>stage('evaluate');$('b-index').onclick=()=>stage('index');
+
+/* ---------- helpers visuais ---------- */
+const stat=(v,l,i=0)=>`<div class="stat" style="animation-delay:${i*40}ms"><b>${v}</b><span>${l}</span></div>`;
+function hbars(el,items,max,labelFn=x=>x){
+  const m=max||Math.max(...items.map(i=>i.n),1);
+  el.innerHTML=items.map(i=>`<div class="hbar"><span>${labelFn(i.name)}</span><div class="t"><i data-w="${i.n/m*100}"></i></div><span>${fmt(i.n)}</span></div>`).join('');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.querySelectorAll('i[data-w]').forEach(i=>i.style.width=i.dataset.w+'%')));
+}
+function canvasCtx(c){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  if(!r.width)return null;c.width=r.width*d;c.height=r.height*d;const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h:r.height}}
+
+/* ---------- gráficos de linha (treino) ---------- */
+function lineChart(c,hist,series){
+  const k=canvasCtx(c);if(!k)return;const {x,w,h}=k;x.clearRect(0,0,w,h);
+  if(!hist.length){x.fillStyle='#8d96ad';x.font='13px system-ui';x.fillText('sem dados ainda — treine o modelo',16,h/2);return}
+  const vals=hist.flatMap(e=>series.map(s=>e[s.k])),lo=Math.min(...vals),hi=Math.max(...vals),pad=(hi-lo)*.15||.02,
+    y0=lo-pad,y1=hi+pad,L=48,R=14,T=12,B=26,px=i=>L+(hist.length>1?i/(hist.length-1):.5)*(w-L-R),py=v=>T+(h-T-B)*(1-(v-y0)/(y1-y0));
+  x.font='11px system-ui';x.textAlign='right';x.fillStyle='#8d96ad';x.strokeStyle='#1c2336';x.lineWidth=1;
+  for(let i=0;i<=3;i++){const v=y0+(y1-y0)*i/3,y=py(v);x.beginPath();x.moveTo(L,y);x.lineTo(w-R,y);x.stroke();x.fillText(v.toFixed(3),L-6,y+4)}
+  x.textAlign='center';hist.forEach((e,i)=>x.fillText('ép '+e.epoch,px(i),h-8));
+  series.forEach(s=>{x.strokeStyle=s.c;x.lineWidth=2.4;x.lineJoin='round';x.beginPath();
+    hist.forEach((e,i)=>i?x.lineTo(px(i),py(e[s.k])):x.moveTo(px(i),py(e[s.k])));x.stroke();
+    hist.forEach((e,i)=>{x.fillStyle=s.c;x.beginPath();x.arc(px(i),py(e[s.k]),3.2,0,7);x.fill()});
+    const e=hist[hist.length-1];x.fillStyle=s.c;x.textAlign='right';x.fillText(e[s.k].toFixed(3),px(hist.length-1)-6,py(e[s.k])-9)});
+}
+function drawCharts(){const h=snap.history||[];
+  lineChart($('c-loss'),h,[{k:'loss',c:'#f87171'},{k:'val_loss',c:'#fbbf24'}]);
+  lineChart($('c-auc'),h,[{k:'auc',c:'#8b7cff'},{k:'val_auc',c:'#4ade80'}])}
+addEventListener('resize',()=>{drawCharts();maps.m1.draw();maps.m2.draw()});
+
+/* ---------- mapa de embeddings ---------- */
+class MapView{
+  constructor(canvas,tip){this.c=canvas;this.tip=tip;this.hl=new Map();this.user=null;this.hover=-1;this.t0=performance.now();
+    canvas.onmousemove=e=>this.move(e);canvas.onmouseleave=()=>{this.hover=-1;tip.style.opacity=0;this.draw()}}
+  pos(i){const d=mapData,k=this.k;return[k.w/2+d.x[i]*(k.w/2-28)/1.15,k.h/2-d.y[i]*(k.h/2-28)/1.15]}
+  upos(){const k=this.k;return[k.w/2+this.user[0]*(k.w/2-28)/1.15,k.h/2-this.user[1]*(k.h/2-28)/1.15]}
+  move(e){if(!mapData||!this.k)return;const r=this.c.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;let b=-1,bd=100;
+    for(let i=0;i<mapData.x.length;i++){const[p,q]=this.pos(i),d=(p-mx)**2+(q-my)**2;if(d<bd){bd=d;b=i}}
+    this.hover=b;if(b>=0){this.tip.style.opacity=1;this.tip.style.left=mx+'px';this.tip.style.top=my+'px';
+      this.tip.innerHTML=`<b>${mapData.name[b]}</b><br><span class="mute">${mapData.legend[mapData.g[b]]}</span>`}else this.tip.style.opacity=0;this.draw()}
+  draw(){if(!mapData)return;const k=canvasCtx(this.c);if(!k)return;this.k=k;const{x,w,h}=k,d=mapData;x.clearRect(0,0,w,h);
+    const dim=this.hl.size>0||this.user;
+    for(let i=0;i<d.x.length;i++){const[p,q]=this.pos(i);x.globalAlpha=dim?.22:.5;x.fillStyle=PAL[d.g[i]];x.beginPath();x.arc(p,q,.8+d.s[i]*1.9,0,7);x.fill()}
+    x.globalAlpha=1;
+    if(this.user){const[ux,uy]=this.upos();
+      this.hl.forEach((rank,id)=>{const i=d.id.indexOf(id);if(i<0)return;const[p,q]=this.pos(i);
+        x.strokeStyle='#8b7cff55';x.lineWidth=1;x.setLineDash([3,4]);x.beginPath();x.moveTo(ux,uy);x.lineTo(p,q);x.stroke();x.setLineDash([])})}
+    this.hl.forEach((rank,id)=>{const i=d.id.indexOf(id);if(i<0)return;const[p,q]=this.pos(i);
+      x.fillStyle=PAL[d.g[i]];x.beginPath();x.arc(p,q,6,0,7);x.fill();x.strokeStyle='#fff';x.lineWidth=2;x.stroke();
+      x.fillStyle='#fff';x.font='bold 11px system-ui';x.textAlign='center';x.fillText(rank,p,q-11)});
+    if(this.user){const[ux,uy]=this.upos(),t=((performance.now()-this.t0)/1000)%2,rr=10+t*26;
+      x.strokeStyle=`rgba(255,215,90,${1-t/2})`;x.lineWidth=2;x.beginPath();x.arc(ux,uy,rr,0,7);x.stroke();
+      x.fillStyle='#ffd75a';x.font='26px system-ui';x.textAlign='center';x.fillText('★',ux,uy+9)}
+    if(this.hover>=0){const[p,q]=this.pos(this.hover);x.strokeStyle='#fff';x.lineWidth=1.5;x.beginPath();x.arc(p,q,6,0,7);x.stroke()}
+  }
+  animate(){cancelAnimationFrame(this.raf);const f=()=>{if(this.user&&this.c.offsetParent){this.draw();this.raf=requestAnimationFrame(f)}};f()}
+}
+const maps={m1:new MapView($('map1'),$('tip1')),m2:new MapView($('map2'),$('tip2'))};
+async function loadMap(){
+  if(mapData){maps.m1.draw();return}
+  if(mapTried&&!snap.model_ready)return;mapTried=true;
+  const r=await fetch('/api/viz/embedding');if(!r.ok)return;mapData=await r.json();
+  $('maplegend').innerHTML=mapData.legend.map((g,i)=>`<span><b style="background:${PAL[i]}"></b>${g.replaceAll('_',' ')}</span>`).join('');
+  maps.m1.draw();maps.m2.draw();
+}
+
+/* ---------- visão geral do catálogo ---------- */
+async function loadOverview(){if(overviewLoaded)return;const r=await fetch('/api/viz/overview');if(!r.ok)return;overviewLoaded=true;const o=await r.json();
+  hbars($('genrebars'),o.genres,0,n=>n.replaceAll('_',' '));hbars($('typebars'),o.types)}
+
+/* ---------- render principal ---------- */
+function render(){
+  const s=snap.stats||{}, st=snap.status||{};
+  for(const k of ['prepare','train','evaluate','index']){const d=$('d-'+k);d.className='dot '+(st[k]||'');$('b-'+k).disabled=!!snap.running}
+  document.querySelector('#arch').classList.toggle('running-train',snap.running==='train');
+  // 1 · dados
+  $('stats').innerHTML=s.animes?`<div class="grid">${stat(fmt(s.animes),'animes no catálogo',0)}${stat(fmt(s.ratings_raw),'avaliações brutas',1)}
+    ${stat(fmt(s.ratings_unrated_dropped),'sem nota (−1) descartadas',2)}${stat(fmt(s.users_sampled),'usuários amostrados',3)}
+    ${stat(fmt(s.train_users)+' / '+fmt(s.test_users),'usuários treino / teste',4)}${stat(fmt(s.train_examples),'exemplos de treino',5)}
+    ${stat(fmt(s.test_examples),'exemplos de teste',6)}${stat((s.liked_ratio_train*100).toFixed(1)+'%','"gostou" no treino',7)}</div>`:'';
+  if(s.animes){
+    const used=s.train_examples+s.test_examples+s.train_history_rows+s.test_history_rows, valid=s.ratings_raw-s.ratings_unrated_dropped;
+    $('funnel').innerHTML=[['',s.ratings_raw,'brutas · '+fmt(s.ratings_raw)],['b',valid,'com nota · '+fmt(valid)],['c',used,'usadas na amostra · '+fmt(used)]]
+      .map(([c,v,l])=>`<div class="f ${c}" data-w="${v/s.ratings_raw*100}">${l}</div>`).join('');
+    const tot=s.train_users+s.test_users;
+    $('splitbar').innerHTML=`<div class="tr" style="flex:${s.train_users/tot}">treino · ${fmt(s.train_users)} usuários</div><div class="te" style="flex:${s.test_users/tot}">teste · ${fmt(s.test_users)}</div>`;
+    $('splitnote').textContent='O teste são pessoas que o modelo nunca viu — nada delas entra no .adapt() nem no treino.';
+    if(!$('cells').children.length)$('cells').innerHTML=Array.from({length:24},(_,i)=>`<i class="${i%2?'g':'h'}" style="transition-delay:${i*25}ms"></i>`).join('');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{$('cells').classList.add('on');document.querySelectorAll('#funnel .f').forEach(f=>f.style.width=f.dataset.w+'%')}));
+    const rh=s.rating_hist.slice(1),mx=Math.max(...rh);
+    $('rhist').innerHTML=rh.map((v,i)=>`<div><span>${fmt(v)}</span><i class="${i+1>=8?'like':''}" data-h="${v/mx*100}"></i><span>${i+1}</span></div>`).join('');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll('#rhist i').forEach(i=>i.style.height=i.dataset.h*.78+'%')));
+  }
+  // 2 · treino
+  const h=snap.history||[], ep=+$('epochs').value||5;
+  $('bar').style.width=(snap.running==='train'?snap.progress*100:(st.train==='done'?100:0))+'%';
+  $('eplabel').textContent=snap.running==='train'?`época ${Math.min(h.length+1,ep)} de ${ep} · ${(snap.progress*100).toFixed(0)}%`:(st.train==='done'?`concluído · ${h.length} épocas`:'');
+  $('eptable').innerHTML=h.length?`<tr><th>época</th><th>loss</th><th>val_loss</th><th>auc</th><th>val_auc</th><th>val_acc</th></tr>`+h.map(e=>`<tr><td>${e.epoch}</td><td>${e.loss}</td><td>${e.val_loss}</td><td>${e.auc}</td><td>${e.val_auc}</td><td>${(e.val_accuracy*100).toFixed(1)}%</td></tr>`).join(''):'';
+  const lg=(snap.logs||[]).join('\n');if($('log').textContent!==lg){$('log').textContent=lg||'Aguardando…';$('log').scrollTop=1e9}
+  drawCharts();
+  // 3 · teste
+  const m=snap.metrics||{};
+  if(m.test_auc){
+    const arc=(f)=>`${Math.max(0,Math.min(1,f))*100} 100`;
+    const gauge=(label,val,txt,f,col)=>`<div class="gauge"><svg viewBox="0 0 120 70"><path d="M10 62 A50 50 0 0 1 110 62" fill="none" stroke="#1c2336" stroke-width="10" stroke-linecap="round" pathLength="100"/>
+      <path class="arc" data-f="${arc(f)}" d="M10 62 A50 50 0 0 1 110 62" fill="none" stroke="${col}" stroke-width="10" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/></svg><big>${txt}</big><small>${label}</small></div>`;
+    const good=m.recall_at_k_model>=m.recall_at_k_popularity;
+    $('evalbox').innerHTML=`<div class="gauges">${gauge('AUC no teste (0,5 = chute · 1 = perfeito)',m.test_auc,m.test_auc.toFixed(3),(m.test_auc-.5)/.5,'url(#g)')}
+      ${gauge('accuracy no teste',m.test_accuracy,(m.test_accuracy*100).toFixed(1)+'%',m.test_accuracy,'#4cc9f0')}
+      ${gauge('loss no teste (menor é melhor)',m.test_loss,m.test_loss.toFixed(3),1-m.test_loss,'#ff9f6e')}</div>
+      <svg width="0" height="0"><defs><linearGradient id="g"><stop offset="0" stop-color="#8b7cff"/><stop offset="1" stop-color="#4cc9f0"/></linearGradient></defs></svg>
+      <h3 style="margin-top:26px">Recall@${m.k} — dos animes que a pessoa gostou, quantos o top-${m.k} acerta?</h3>
+      <div class="cmp"><div class="hbar mod"><span>Two-Tower</span><div class="t"><i data-w="${Math.max(m.recall_at_k_model*100/Math.max(m.recall_at_k_model,m.recall_at_k_popularity,.001),1)}"></i></div><span>${(m.recall_at_k_model*100).toFixed(1)}%</span></div>
+      <div class="hbar pop"><span>Mais populares</span><div class="t"><i data-w="${m.recall_at_k_popularity*100/Math.max(m.recall_at_k_model,m.recall_at_k_popularity,.001)}"></i></div><span>${(m.recall_at_k_popularity*100).toFixed(1)}%</span></div></div>
+      <div class="note ${good?'ok':''}">${good?`O modelo bate a baseline de popularidade em Recall@${m.k}: personalizar ajudou além de só recomendar o que todo mundo vê.`:`A baseline "mais populares" ainda vence o modelo em Recall@${m.k}. Vale treinar mais épocas ou enriquecer as features — AUC alto não garante bom ranking no top-K.`}
+      Avaliados ${fmt(m.users_evaluated)} usuários de teste.</div>`;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{document.querySelectorAll('#evalbox .arc').forEach(a=>a.setAttribute('stroke-dasharray',a.dataset.f));
+      document.querySelectorAll('#evalbox i[data-w]').forEach(i=>i.style.width=i.dataset.w+'%')}));
+  }
+  // 4 · vetorizar
+  const ii=snap.index_info||{};
+  $('pgstatus').innerHTML=ii.rows?(ii.postgres?'<span class="status pg">Postgres + pgvector ativo</span>':'<span class="status">numpy em memória (sem Postgres)</span>'):'';
+  $('pipe').innerHTML=ii.rows?[`<span class="s">${fmt(s.animes||ii.rows)} animes</span>`,'→','<span class="s">torre de itens</span>','→',`<span class="s"><b>${fmt(ii.rows)}</b> vetores × <b>${ii.dim}</b> dims</span>`,'→',
+    `<span class="s">${ii.postgres?'tabela <b>animes</b> + índice <b>HNSW</b> (cosseno)':'<b>item_embeddings.npy</b> + produto escalar'}</span>`].map((x,i)=>x.startsWith('<')?x.replace('class="s"',`class="s" style="animation-delay:${i*90}ms"`):`<span class="mute">${x}</span>`).join(''):'';
+  $('pgnote').innerHTML=ii.rows&&!ii.postgres?`<div class="note">O Postgres não respondeu em <code>localhost:5432</code>, então a busca está rodando em numpy (funciona igual, só sem índice HNSW). Para usar o pgvector, suba o banco e rode esta etapa de novo:<pre class="cmd">docker compose up -d db</pre></div>`:'';
+  if(ii.rows&&snap.model_ready&&!mapData&&!$('t-index').classList.contains('hidden'))loadMap();
+}
+let lastRaw='',pt;
+async function poll(){clearTimeout(pt);const raw=await (await fetch('/api/pipeline')).text();const prev=snap;
+  if(raw!==lastRaw){lastRaw=raw;snap=JSON.parse(raw);render();
+    if(prev.running&&!snap.running&&snap.model_ready){mapData=null;mapTried=false;metaLoaded=false;overviewLoaded=false;if(!$('t-index').classList.contains('hidden'))loadMap();if(!$('t-data').classList.contains('hidden'))loadOverview()}}
+  pt=setTimeout(poll,snap.running?1000:4000);}
+
+/* ---------- recomendar ---------- */
+async function loadMeta(){if(metaLoaded)return;const r=await fetch('/api/meta');if(!r.ok){$('use-msg').textContent='Treine e vetorize o modelo antes (etapas 1–4).';return}
+  const m=await r.json();metaLoaded=true;$('use-form').classList.remove('hidden');
+  $('genres').innerHTML='';m.genres.forEach(g=>{const e=document.createElement('span');e.className='chip'+(genres.has(g)?' on':'');e.textContent=g.replaceAll('_',' ');
+    e.onclick=()=>{genres.has(g)?genres.delete(g):genres.add(g);e.classList.toggle('on')};$('genres').append(e)});
+  $('type').innerHTML='<option value="">Qualquer</option>'+m.types.map(t=>`<option>${t}</option>`).join('');}
+let tm;$('q').oninput=()=>{clearTimeout(tm);tm=setTimeout(async()=>{const q=$('q').value.trim();if(q.length<2){$('sug').innerHTML='';return}
+  const r=await (await fetch('/api/animes/search?q='+encodeURIComponent(q))).json();$('sug').className='sug';$('sug').innerHTML='';
+  r.forEach(a=>{const d=document.createElement('div');d.textContent=`${a.name} · ${a.type}`;d.onclick=()=>{liked.set(a.id,a.name);$('sug').innerHTML='';$('sug').className='';$('q').value='';drawLiked()};$('sug').append(d)})},250)};
+function drawLiked(){$('liked').innerHTML='';liked.forEach((n,id)=>{const e=document.createElement('span');e.className='chip on';e.textContent=n+' ✕';e.onclick=()=>{liked.delete(id);drawLiked()};$('liked').append(e)})}
+const heat=v=>v.map(x=>{const a=Math.min(1,Math.abs(x)*3.2);return `<i style="background:${x>=0?`rgba(76,201,240,${a})`:`rgba(255,159,110,${a})`}"></i>`}).join('');
+$('b-rec').onclick=async()=>{const r=await post('/api/recommend',{genres:[...genres],liked_ids:[...liked.keys()],avg_rating:+$('avg').value,n_watched:+$('nw').value,type:$('type').value||null,min_rating:+$('minr').value});
+  if(!r.ok)return;const d=await r.json();lastRec=d;$('result').classList.remove('hidden');
+  $('backend').textContent='busca vetorial via '+(d.backend==='postgres'?'Postgres (pgvector, HNSW)':'numpy em memória')+' · azul = valor positivo, laranja = negativo';
+  $('uheat').innerHTML=heat(d.user_vec);
+  $('recs').innerHTML=d.items.map((a,i)=>`<div class="a" style="animation-delay:${i*60}ms" data-id="${a.id}"><div class="rk">${i+1}</div><div>
+    <b>${a.name}</b> <small>· ${a.type}${a.episodes?' · '+a.episodes+' eps':''} · nota ${a.rating.toFixed(2)} · ${fmt(a.members)} membros</small>
+    <div class="sc"><div class="t"><i data-w="${Math.max(0,Math.min(1,a.score))*100}"></i></div><em>${a.score.toFixed(3)}</em></div>
+    <div>${(a.genre||'').split(',').filter(Boolean).map(g=>`<span class="tag ${genres.has(g.trim().toLowerCase().replaceAll(' ','_'))?'m':''}">${g.trim()}</span>`).join('')}</div>
+    ${a.vec?`<div class="heat">${heat(a.vec)}</div>`:''}</div></div>`).join('');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll('#recs .sc i').forEach(i=>i.style.width=i.dataset.w+'%')));
+  const m2=maps.m2;m2.hl=new Map(d.items.map((a,i)=>[a.id,i+1]));m2.user=d.user_xy||null;
+  if(!mapData){mapTried=false;await loadMap()}m2.draw();m2.animate();
+  document.querySelectorAll('#recs .a').forEach(el=>{el.onmouseenter=()=>{const i=mapData&&mapData.id.indexOf(+el.dataset.id);if(i>=0){m2.hover=i;m2.draw()}};el.onmouseleave=()=>{m2.hover=-1;m2.draw()}});
+  $('result').scrollIntoView({behavior:'smooth',block:'start'});
+};
+const start=(location.hash||'#data').slice(1);poll().then(()=>{if(['data','train','eval','index','use'].includes(start))show(start);else show('data')});
+</script>
+</body></html>

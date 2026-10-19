@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Entenda o AnimeRec</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  .hero{position:relative;min-height:78vh;display:grid;place-items:center;text-align:center;overflow:hidden;border-bottom:1px solid var(--line)}
+  .hero canvas{position:absolute;inset:0;width:100%;height:100%}
+  .hero .in{position:relative;max-width:760px;padding:40px 24px}
+  .eyebrow{font:600 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--acc2)}
+  h1{font-size:clamp(38px,6vw,64px);line-height:1.04;letter-spacing:-.035em;margin:14px 0 16px}
+  h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{font-size:18px;color:#b5bdd3;max-width:620px;margin:0 auto 26px}
+  .kpis{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+  .kpis div b{display:block;font-size:30px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.kpis div span{font-size:12px;color:var(--mute)}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+  section.ch{padding:90px 0 20px}
+  .num{font:700 13px var(--mono);color:var(--acc);letter-spacing:.1em}
+  h2{font-size:clamp(26px,3.6vw,38px);letter-spacing:-.025em;margin:6px 0 12px;line-height:1.12}
+  .txt{max-width:640px;color:#b5bdd3;font-size:16px}
+  .txt b{color:var(--fg)}
+  .demo{margin-top:26px;background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);border-radius:18px;padding:22px}
+  .demo h4{margin:0 0 4px;font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:.07em}
+  canvas.cv{width:100%;display:block;border-radius:12px;background:radial-gradient(circle at 50% 50%,#141a2c,#0a0d14)}
+  .cols{display:grid;grid-template-columns:1.25fr 1fr;gap:20px;align-items:start}@media(max-width:820px){.cols{grid-template-columns:1fr}}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+  .readout{font:13px var(--mono);color:#c9d2ff;display:grid;gap:6px}
+  .readout .r{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line);padding-bottom:5px}
+  .readout .r span:first-child{color:var(--mute)}
+  .big{font-size:34px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  input[type=range]{width:100%;accent-color:var(--acc);padding:0}
+  .sl{margin:10px 0}.sl div{display:flex;justify-content:space-between;font-size:12px;color:var(--mute)}.sl b{color:var(--fg);font-family:var(--mono)}
+  .pbar{height:12px;background:var(--bg);border-radius:8px;overflow:hidden;margin:8px 0}.pbar i{display:block;height:100%;background:var(--grad);transition:width .25s}
+  .warn{border:1px solid #f8717155;background:#f8717110;color:#fca5a5;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px}
+  .tip{border:1px solid var(--line);border-left:3px solid var(--acc2);background:#4cc9f00d;border-radius:10px;padding:11px 14px;font-size:14px;margin-top:16px;color:#b5bdd3;max-width:680px}
+  .tip b{color:var(--fg)}
+  pre.code{background:#070a10;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:12.5px/1.6 var(--mono);color:#c9d2ff;overflow:auto;margin:12px 0 0}
+  pre.code .k{color:#ff9f6e}pre.code .c{color:#5d6a8a}pre.code .s{color:#8be9ad}
+  /* reveal */
+  [data-r]{opacity:0;transform:translateY(22px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+  [data-r].in{opacity:1;transform:none}
+  /* side nav */
+  .side{position:fixed;right:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:40}
+  .side a{width:10px;height:10px;border-radius:50%;background:var(--line);display:block;transition:.25s;position:relative}
+  .side a.on{background:var(--acc2);transform:scale(1.5);box-shadow:0 0 12px #4cc9f0aa}
+  .side a span{position:absolute;right:20px;top:-4px;font-size:12px;white-space:nowrap;opacity:0;pointer-events:none;color:var(--fg);background:#05070cee;padding:2px 8px;border-radius:6px;transition:.2s}
+  .side a:hover span{opacity:1}
+  @media(max-width:1100px){.side{display:none}}
+  /* split users */
+  .pool{position:relative;height:250px;border-radius:12px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+  .zone{position:absolute;top:10px;bottom:10px;border:1px dashed #34406a;border-radius:10px;font-size:11px;color:var(--mute);padding:4px 8px;opacity:0;transition:opacity .6s}
+  .pool.split .zone{opacity:1}
+  .u{position:absolute;width:22px;height:22px;border-radius:50%;background:var(--acc);transition:transform .9s cubic-bezier(.2,.8,.2,1),background .4s,box-shadow .4s;left:0;top:0;font-size:9px;display:grid;place-items:center;color:#0a0d1a;font-weight:700}
+  .u.te{background:var(--hot)}
+  .u.leak{box-shadow:0 0 0 3px #f87171,0 0 14px #f87171}
+  .tl{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-top:10px}
+  .tl div{aspect-ratio:1.15;border-radius:9px;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center;font:700 14px var(--mono);transition:all .5s;position:relative}
+  .tl div small{position:absolute;bottom:3px;font:600 9px var(--mono);opacity:.85}
+  .tl div.h{background:#4cc9f022;border-color:var(--acc2);color:var(--acc2)}
+  .tl div.g{background:#ff9f6e22;border-color:var(--hot);color:var(--hot)}
+  .tl div.like{box-shadow:inset 0 0 0 1px currentColor}
+  /* preprocess */
+  .cells{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+  .cells i{width:30px;height:30px;border-radius:7px;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center;font:600 12px var(--mono);font-style:normal;color:var(--mute);transition:.25s}
+  .cells i.on{background:var(--acc);color:#0a0d1a;border-color:transparent;box-shadow:0 0 12px #8b7cff66}
+  .cells.oh i.on{background:var(--acc2);box-shadow:0 0 12px #4cc9f066}
+  .cap{font-size:12px;color:var(--mute);margin-top:2px}
+  .zbar{position:relative;height:30px;background:var(--bg);border-radius:8px;border:1px solid var(--line);margin-top:8px}
+  .zbar::after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:1px dashed #34406a}
+  .zbar i{position:absolute;top:5px;width:20px;height:20px;border-radius:50%;background:var(--grad);transform:translateX(-50%);transition:left .25s;box-shadow:0 0 12px #8b7cff88}
+  .rec{display:grid;grid-template-columns:repeat(30,1fr);gap:3px;margin:6px 0}
+  .rec i{aspect-ratio:.9;border-radius:4px;background:var(--bg);border:1px solid var(--line);transition:.3s}
+  .rec i.rel{background:#4ade8033;border-color:var(--ok)}.rec i.cut{box-shadow:inset 0 0 0 2px #ffd75a}
+  .rec.pop i.rel{background:#56608a55;border-color:#7b86b8}
+  /* hnsw */
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-top:8px}.legend b{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+  /* pipeline */
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:26px}@media(max-width:820px){.flow{grid-template-columns:1fr}}
+  .flow a{display:block;position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;color:var(--fg);transition:.25s;overflow:hidden}
+  .flow a:hover{border-color:var(--acc);transform:translateY(-3px)}
+  .flow a b{display:block;margin:4px 0 6px}.flow a small{color:var(--mute);font-size:12.5px;line-height:1.45;display:block}
+  .flow a .n{font:700 11px var(--mono);color:var(--acc2)}
+  .flow a::after{content:"";position:absolute;left:0;top:0;height:2px;width:30%;background:var(--grad);animation:slide 3.2s infinite;animation-delay:calc(var(--i)*.5s)}
+  @keyframes slide{from{left:-30%}to{left:100%}}
+  .lessons{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:24px}
+  .lessons div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .lessons h5{margin:0 0 6px;font-size:15px}.lessons p{margin:0;color:#b5bdd3;font-size:14px}
+  footer{padding:80px 24px 90px;text-align:center;color:var(--mute)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><i></i>AnimeRec</div>
+  <div class="links"><a href="/">Aplicação</a><a class="on" href="/learn">Entenda o projeto</a></div>
+</div>
+<nav class="side" id="side"></nav>
+
+<header class="hero">
+  <canvas id="hero"></canvas>
+  <div class="in">
+    <div class="eyebrow">Módulo 3 · Pós-graduação · TensorFlow</div>
+    <h1>Como um modelo aprende a <em>recomendar anime</em></h1>
+    <p class="lead">Da nota crua de milhões de pessoas até um vetor de 64 números que vive no Postgres. Aqui você mexe em cada peça e vê o que acontece.</p>
+    <a class="btn" href="#s1" style="display:inline-block">Começar o tour ↓</a>
+    <div class="kpis">
+      <div><b data-count="12294">0</b><span>animes</span></div>
+      <div><b data-count="7813737">0</b><span>avaliações brutas</span></div>
+      <div><b data-count="64">0</b><span>dimensões por vetor</span></div>
+      <div><b data-count="2">0</b><span>torres neurais</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- 1 -->
+<section class="ch" id="s1" data-nav="A ideia">
+  <div data-r><div class="num">01 · A IDEIA</div><h2>Duas torres, um espaço em comum</h2>
+  <p class="txt">Uma rede olha para <b>você</b> (gêneros que curte, nota média, quanto já assistiu) e cospe um vetor. Outra olha para cada <b>anime</b> (gêneros, tipo, episódios, popularidade) e também cospe um vetor. As duas aprendem a colocar quem combina <b>perto</b>. Recomendar vira achar os vizinhos mais próximos.</p></div>
+  <div class="demo" data-r>
+    <div class="cols">
+      <div><canvas class="cv" id="cv-circle" height="400"></canvas></div>
+      <div>
+        <h4>Experimente: escolha gêneros</h4>
+        <div class="chips" id="g-chips"></div>
+        <div class="readout" id="g-read"><span class="mute">Escolha ao menos um gênero.</span></div>
+        <div class="tip">Como o último passo das torres é <b>UnitNormalization</b>, todo vetor tem tamanho 1: usuários e animes moram num círculo (aqui em 2D; no projeto, uma esfera de 64D). Só o <b>ângulo</b> importa.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="ch" id="s2" data-nav="Cosseno">
+  <div data-r><div class="num">02 · SIMILARIDADE</div><h2>Cosseno vira probabilidade</h2>
+  <p class="txt">O modelo calcula o cosseno entre o vetor do usuário <b>u</b> e o do anime <b>v</b>, e passa por uma sigmoide: <code>P(gostar) = σ(a·cos(u,v) + b)</code>. Arraste o vetor do usuário e mexa em <b>a</b> e <b>b</b>.</p></div>
+  <div class="demo" data-r>
+    <div class="cols">
+      <div><canvas class="cv" id="cv-cos" height="340" style="cursor:grab"></canvas></div>
+      <div>
+        <div class="readout"><div class="r"><span>ângulo</span><span id="k-ang">—</span></div><div class="r"><span>cos(u, v)</span><span id="k-cos">—</span></div><div class="r"><span>a·cos + b</span><span id="k-z">—</span></div></div>
+        <div style="margin-top:14px" class="mute">P(gostar)</div><div class="big" id="k-p">—</div><div class="pbar"><i id="k-pb"></i></div>
+        <div class="sl"><div><span>a (inclinação)</span><b id="v-a">3.0</b></div><input type="range" id="sa" min="-5" max="8" step="0.1" value="3"></div>
+        <div class="sl"><div><span>b (viés)</span><b id="v-b">0.3</b></div><input type="range" id="sb" min="-3" max="3" step="0.1" value="0.3"></div>
+        <div id="k-warn"></div>
+      </div>
+    </div>
+    <div class="tip"><b>Um bug de verdade:</b> no primeiro treino deste projeto, o peso <code>a</code> saiu <b>−3,18</b>. O AUC ficou ótimo (0,83), mas o ranking ficou invertido: quanto mais parecido, <i>menos</i> chance de gostar. O Recall@20 do modelo foi 0% contra 13% de "só os mais populares". A correção foi travar <code>a ≥ 0</code> com <code>NonNeg()</code>.</div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="ch" id="s3" data-nav="Split">
+  <div data-r><div class="num">03 · SPLIT</div><h2>Separe antes de calcular qualquer coisa</h2>
+  <p class="txt">Média, desvio, vocabulário: tudo que o <code>.adapt()</code> aprende deve vir <b>só do treino</b>. Se o teste entra na conta, ele "vaza" e a métrica final mente. O split é por <b>usuário</b>, então o teste são pessoas que o modelo nunca viu.</p></div>
+  <div class="demo" data-r>
+    <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <button class="btn" id="sp-go">Dividir 80 / 20</button>
+      <button class="btn ghost" id="sp-reset">Resetar</button>
+      <label style="flex-direction:row;align-items:center;gap:8px;margin-left:8px"><input type="checkbox" id="sp-leak"> calcular μ com <b style="color:#fca5a5">todos</b> (errado)</label>
+    </div>
+    <div class="pool" id="pool"><div class="zone" style="left:10px;width:calc(78% - 14px)">TREINO (80% dos usuários)</div><div class="zone" style="right:10px;width:calc(22% - 14px)">TESTE</div></div>
+    <div class="readout" style="margin-top:14px;grid-template-columns:1fr 1fr;gap:6px 24px">
+      <div class="r"><span>μ que o <code>.adapt()</code> enxerga</span><span id="sp-mu">—</span></div>
+      <div class="r"><span>μ real do teste</span><span id="sp-mute">—</span></div>
+    </div>
+    <div class="tip" id="sp-msg">Clique em "Dividir" e depois marque a caixa para ver o teste contaminar a estatística.</div>
+    <h4 style="margin-top:28px">Dentro de cada usuário: histórico × alvo</h4>
+    <p class="mute" style="font-size:13px;margin:2px 0 0">Cada número é a nota que o usuário deu a um anime. Metade vira <b style="color:var(--acc2)">histórico</b> (monta o perfil, só notas ≥ 8 contam). A outra metade vira <b style="color:var(--hot)">alvo</b>: o modelo tenta prever se foi "gostou" (≥ 8).</p>
+    <div class="tl" id="tl"></div>
+    <div class="row" style="margin-top:12px"><button class="btn ghost" id="tl-go">Separar histórico / alvo</button></div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="ch" id="s4" data-nav="Pré-processamento">
+  <div data-r><div class="num">04 · NO GRAFO</div><h2>O pré-processamento mora dentro do modelo</h2>
+  <p class="txt">Texto vira multi-hot, categoria vira one-hot, números grandes passam por <code>log1p</code> e viram z-score. Como essas camadas fazem parte do modelo salvo, quem usa o modelo em produção manda o dado cru e recebe o mesmo tratamento do treino.</p></div>
+  <div class="demo" data-r>
+    <div class="cols">
+      <div>
+        <h4>gêneros → <code>TextVectorization(multi_hot)</code></h4>
+        <div class="chips" id="pp-g"></div><div class="cells" id="pp-gv"></div>
+        <h4 style="margin-top:18px">tipo → <code>StringLookup(one_hot)</code></h4>
+        <div class="chips" id="pp-t"></div><div class="cells oh" id="pp-tv"></div>
+      </div>
+      <div>
+        <h4>episódios → <code>log1p</code> → <code>Normalization</code></h4>
+        <div class="sl"><div><span>episódios (cru)</span><b id="pp-e">12</b></div><input type="range" id="pp-es" min="0" max="1000" step="1" value="12"></div>
+        <div class="readout">
+          <div class="r"><span>log1p(x)</span><span id="pp-l">—</span></div>
+          <div class="r"><span>μ, σ aprendidos no treino*</span><span>2.10 , 1.40</span></div>
+          <div class="r"><span>z = (log1p − μ) / σ</span><span id="pp-z">—</span></div>
+        </div>
+        <div class="zbar"><i id="pp-zd" style="left:50%"></i></div>
+        <div class="cap">−3σ ········ 0 ········ +3σ</div>
+        <div class="cap" style="margin-top:8px">*valores ilustrativos. Sem o log, séries longas (1000 eps) esmagariam todo o resto na escala.</div>
+      </div>
+    </div>
+<pre class="code"><span class="c"># o adapt() só enxerga os animes vistos por usuários de TREINO</span>
+tv = layers.TextVectorization(output_mode=<span class="s">"multi_hot"</span>); tv.adapt(<span class="k">treino</span>.genres)
+norm = layers.Normalization(); norm.adapt(np.log1p(<span class="k">treino</span>.episodes))
+<span class="c"># e vira parte do grafo: x = norm(keras.ops.log1p(episodes_input))</span></pre>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="ch" id="s5" data-nav="Métricas">
+  <div data-r><div class="num">05 · MÉTRICAS</div><h2>AUC e Recall@K contam histórias diferentes</h2>
+  <p class="txt"><b>AUC</b> é a chance de uma nota "gostou" receber score maior que uma "não gostou". <b>Recall@K</b> pergunta outra coisa: dos que a pessoa gostou, quantos aparecem no seu top-K? Dá para ter AUC alto e Recall baixo.</p></div>
+  <div class="demo" data-r>
+    <h4>AUC: duas nuvens de scores</h4>
+    <canvas class="cv" id="cv-auc" height="230"></canvas>
+    <div class="cols" style="margin-top:12px">
+      <div>
+        <div class="sl"><div><span>separação entre as classes</span><b id="au-dv">1.2</b></div><input type="range" id="au-d" min="0" max="3.5" step="0.05" value="1.2"></div>
+        <div class="sl"><div><span>limiar de decisão</span><b id="au-tv">0.6</b></div><input type="range" id="au-t" min="-2" max="5" step="0.05" value="0.6"></div>
+      </div>
+      <div class="readout"><div class="r"><span>AUC</span><span id="au-auc">—</span></div><div class="r"><span>TPR (acerta os "gostou")</span><span id="au-tpr">—</span></div><div class="r"><span>FPR (falso alarme)</span><span id="au-fpr">—</span></div></div>
+    </div>
+    <h4 style="margin-top:30px">Recall@K: o top-K do modelo vs. "mais populares"</h4>
+    <p class="mute" style="font-size:13px;margin:2px 0">Cada quadrado é um anime ranqueado. Verde = a pessoa gostou (e escondemos no teste). Anel amarelo = o corte do top-K.</p>
+    <div class="cap" style="margin-top:8px">Two-Tower</div><div class="rec" id="rc-m"></div>
+    <div class="cap">Mais populares</div><div class="rec pop" id="rc-p"></div>
+    <div class="sl"><div><span>K</span><b id="rc-kv">10</b></div><input type="range" id="rc-k" min="1" max="30" value="10"></div>
+    <div class="readout" style="grid-template-columns:1fr 1fr;gap:6px 24px"><div class="r"><span>Recall@K modelo</span><span id="rc-rm">—</span></div><div class="r"><span>Recall@K populares</span><span id="rc-rp">—</span></div></div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="ch" id="s6" data-nav="Busca vetorial">
+  <div data-r><div class="num">06 · BUSCA VETORIAL</div><h2>Achar vizinhos sem olhar para todo mundo</h2>
+  <p class="txt">Comparar o usuário com os 12 mil animes funciona, mas não escala para milhões. O índice <b>HNSW</b> do pgvector monta camadas de atalhos: salta longe nas camadas de cima e refina na de baixo. Clique no mapa para mudar a consulta e veja quantas distâncias cada método calcula.</p></div>
+  <div class="demo" data-r>
+    <canvas class="cv" id="cv-hnsw" height="380" style="cursor:crosshair"></canvas>
+    <div class="legend"><span><b style="background:#ff9f6e"></b>camada 2 (poucos pontos, saltos longos)</span><span><b style="background:#4ade80"></b>camada 1</span><span><b style="background:#8b7cff"></b>camada 0 (todos)</span><span><b style="background:#ffd75a"></b>consulta</span></div>
+    <div class="readout" style="grid-template-columns:1fr 1fr;gap:6px 24px;margin-top:12px"><div class="r"><span>distâncias — força bruta</span><span id="hn-bf">—</span></div><div class="r"><span>distâncias — HNSW</span><span id="hn-h">—</span></div></div>
+    <div class="row" style="margin-top:12px"><button class="btn ghost" id="hn-again">Repetir animação</button></div>
+    <pre class="code"><span class="c">-- 1 − distância cosseno = score; o índice HNSW acelera o ORDER BY</span>
+CREATE INDEX animes_emb_hnsw ON animes USING hnsw (embedding vector_cosine_ops);
+SELECT name, 1 - (embedding &lt;=&gt; :user_vec) AS score FROM animes
+ORDER BY embedding &lt;=&gt; :user_vec LIMIT 12;</pre>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="ch" id="s7" data-nav="Pipeline">
+  <div data-r><div class="num">07 · O PROJETO</div><h2>O pipeline completo</h2>
+  <p class="txt">Cada etapa tem uma tela na aplicação. Clique para abrir.</p></div>
+  <div class="flow" data-r>
+    <a href="/#data" style="--i:0"><span class="n">01</span><b>Dados e split</b><small>unzip, limpa, descarta nota −1, split por usuário</small></a>
+    <a href="/#train" style="--i:1"><span class="n">02</span><b>Treino</b><small><code>.adapt()</code> só no treino, fit das duas torres</small></a>
+    <a href="/#eval" style="--i:2"><span class="n">03</span><b>Teste</b><small>AUC, accuracy e Recall@K contra a baseline</small></a>
+    <a href="/#index" style="--i:3"><span class="n">04</span><b>Vetorizar</b><small>embedding de 64D por anime, pgvector + HNSW</small></a>
+    <a href="/#use" style="--i:4"><span class="n">05</span><b>Recomendar</b><small>perfil → torre do usuário → vizinhos mais próximos</small></a>
+  </div>
+  <div class="lessons" data-r>
+    <div><h5>Cold start resolvido</h5><p>Usuário novo não tem histórico. Ele informa gêneros e animes que gostou, e o perfil é montado igual ao do treino.</p></div>
+    <div><h5>AUC alto não basta</h5><p>O primeiro treino tinha AUC 0,83 e ranking invertido. Sempre compare com uma baseline (aqui, "mais populares").</p></div>
+    <div><h5>Sem Postgres, sem drama</h5><p>Se o banco não responder, a API cai para numpy e o resultado é o mesmo, só sem o índice.</p></div>
+  </div>
+</section>
+</div>
+<footer>Projeto de estudos · Módulo 3 · feito com TensorFlow, FastAPI e pgvector<br><a href="/">Abrir a aplicação →</a></footer>
+
+<script>
+const $=id=>document.getElementById(id), fmt=n=>Math.round(n).toLocaleString('pt-BR');
+const REDUCED=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function fit(c){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;if(!c.dataset.h)c.dataset.h=c.getAttribute('height');const h=+c.dataset.h;c.width=r.width*d;c.height=h*d;c.style.height=h+'px';
+  const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h}}
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646};
+const gauss=()=>{let u=0;for(let i=0;i<6;i++)u+=rnd();return(u-3)*Math.SQRT2};
+const erf=x=>{const s=Math.sign(x);x=Math.abs(x);const t=1/(1+.3275911*x);return s*(1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x))};
+const Phi=z=>.5*(1+erf(z/Math.SQRT2));
+
+/* ---------- reveal, contadores, nav lateral ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll('[data-r]').forEach(e=>io.observe(e));
+function countUp(el){const to=+el.dataset.count,t0=performance.now(),D=1600;(function f(t){const p=Math.min(1,(t-t0)/D),e=1-Math.pow(1-p,3);el.textContent=fmt(to*(REDUCED?1:e));if(p<1)requestAnimationFrame(f)})(t0)}
+document.querySelectorAll('[data-count]').forEach(countUp);
+const secs=[...document.querySelectorAll('section[data-nav]')];
+$('side').innerHTML=secs.map(s=>`<a href="#${s.id}" data-id="${s.id}"><span>${s.dataset.nav}</span></a>`).join('');
+const navIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)document.querySelectorAll('#side a').forEach(a=>a.classList.toggle('on',a.dataset.id===e.target.id))}),{rootMargin:'-45% 0px -50% 0px'});
+secs.forEach(s=>navIO.observe(s));
+
+/* ---------- hero: partículas ---------- */
+(function(){const c=$('hero');let k,P=[];function init(){k=fit(c);c.style.height='';P=Array.from({length:70},(_,i)=>({x:rnd()*k.w,y:rnd()*k.h,vx:(rnd()-.5)*.35,vy:(rnd()-.5)*.35,u:i%5==0}))}
+  c.dataset.h=innerHeight*.78|0;init();addEventListener('resize',()=>{c.dataset.h=innerHeight*.78|0;init()});
+  (function f(){const{x,w,h}=k;x.clearRect(0,0,w,h);P.forEach(p=>{if(!REDUCED){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>w)p.vx*=-1;if(p.y<0||p.y>h)p.vy*=-1}});
+    for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++){const a=P[i],b=P[j],d=Math.hypot(a.x-b.x,a.y-b.y);if(d<130&&(a.u!==b.u)){x.strokeStyle=`rgba(139,124,255,${.28*(1-d/130)})`;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()}}
+    P.forEach(p=>{x.fillStyle=p.u?'#ffd75a':'#4cc9f0';x.globalAlpha=p.u?.95:.5;x.beginPath();x.arc(p.x,p.y,p.u?4:2.2,0,7);x.fill()});x.globalAlpha=1;requestAnimationFrame(f)})()})();
+
+/* ---------- 1 · círculo de gêneros ---------- */
+(function(){
+  const G=[['ação',.0,'#ff9f6e'],['aventura',.9,'#fbbf24'],['comédia',1.8,'#4ade80'],['romance',2.7,'#f472b6'],['drama',3.6,'#8b7cff'],['terror',4.5,'#64748b'],['sci-fi',5.4,'#4cc9f0']];
+  const items=[];seed=11;G.forEach((g,gi)=>{for(let i=0;i<7;i++)items.push({a:g[1]+gauss()*.14,g:[gi],s:.5+rnd()})});
+  for(let i=0;i<12;i++){const a=Math.floor(rnd()*7),b=(a+1)%7;items.push({a:(G[a][1]+G[b][1])/2+(a==6?Math.PI/2*0:0)+gauss()*.1,g:[a,b],s:.5+rnd()})}
+  items.forEach(it=>{const v=[Math.cos(it.a),Math.sin(it.a)];it.v=v;it.col=G[it.g[0]][2]});
+  const sel=new Set(),c=$('cv-circle');let cur=null,tgt=null,top=[];
+  $('g-chips').innerHTML=G.map((g,i)=>`<span class="chip" data-i="${i}">${g[0]}</span>`).join('');
+  $('g-chips').onclick=e=>{const i=e.target.dataset.i;if(i===undefined)return;sel.has(+i)?sel.delete(+i):sel.add(+i);e.target.classList.toggle('on');update()};
+  function update(){if(!sel.size){tgt=null;top=[];$('g-read').innerHTML='<span class="mute">Escolha ao menos um gênero.</span>';return}
+    let x=0,y=0;sel.forEach(i=>{x+=Math.cos(G[i][1]);y+=Math.sin(G[i][1])});const n=Math.hypot(x,y)||1;tgt=Math.atan2(y,x);if(n<1e-6)tgt=0;
+    const u=[x/n,y/n];top=items.map((it,i)=>({i,s:it.v[0]*u[0]+it.v[1]*u[1]})).sort((a,b)=>b.s-a.s).slice(0,5);
+    $('g-read').innerHTML=top.map((t,r)=>`<div class="r"><span>#${r+1} · ${items[t.i].g.map(k=>G[k][0]).join(' + ')}</span><span>cos ${t.s.toFixed(3)}</span></div>`).join('')}
+  function draw(){const{x,w,h}=fit(c),cx=w/2,cy=h/2,R=Math.min(w,h)/2-34;x.clearRect(0,0,w,h);
+    x.strokeStyle='#222a3d';x.lineWidth=1.5;x.beginPath();x.arc(cx,cy,R,0,7);x.stroke();x.setLineDash([2,6]);x.beginPath();x.arc(cx,cy,R*.5,0,7);x.stroke();x.setLineDash([]);
+    G.forEach(g=>{x.fillStyle=g[2];x.font='600 12px system-ui';x.textAlign='center';x.fillText(g[0],cx+Math.cos(g[1])*(R+20),cy+Math.sin(g[1])*(R+20)+4)});
+    const hl=new Set(top.map(t=>t.i));
+    items.forEach((it,i)=>{x.globalAlpha=hl.size&&!hl.has(i)?.25:1;x.fillStyle=it.col;x.beginPath();x.arc(cx+it.v[0]*R,cy+it.v[1]*R,3+it.s*3,0,7);x.fill()});x.globalAlpha=1;
+    if(tgt!==null){cur=cur===null?tgt:cur+Math.atan2(Math.sin(tgt-cur),Math.cos(tgt-cur))*.12;
+      const ux=cx+Math.cos(cur)*R*.82,uy=cy+Math.sin(cur)*R*.82;
+      top.forEach(t=>{const it=items[t.i];x.strokeStyle='#ffd75a66';x.setLineDash([4,5]);x.lineWidth=1.4;x.beginPath();x.moveTo(ux,uy);x.lineTo(cx+it.v[0]*R,cy+it.v[1]*R);x.stroke();x.setLineDash([]);
+        x.strokeStyle='#fff';x.lineWidth=2;x.beginPath();x.arc(cx+it.v[0]*R,cy+it.v[1]*R,8,0,7);x.stroke()});
+      x.strokeStyle='#ffd75a';x.lineWidth=3;x.beginPath();x.moveTo(cx,cy);x.lineTo(ux,uy);x.stroke();x.fillStyle='#ffd75a';x.font='28px system-ui';x.fillText('★',ux,uy+10)}
+    else{x.fillStyle='#8d96ad';x.font='13px system-ui';x.textAlign='center';x.fillText('os pontos são animes · ★ será você',cx,cy)}
+    requestAnimationFrame(draw)}
+  draw()})();
+
+/* ---------- 2 · cosseno interativo ---------- */
+(function(){
+  const c=$('cv-cos');let ang=-0.9,drag=false;const itemAng=0;
+  const sig=z=>1/(1+Math.exp(-z));
+  function upd(){const a=+$('sa').value,b=+$('sb').value,cs=Math.cos(ang-itemAng),z=a*cs+b,p=sig(z);
+    $('v-a').textContent=a.toFixed(1);$('v-b').textContent=b.toFixed(1);
+    $('k-ang').textContent=(Math.abs(((ang-itemAng)*180/Math.PI+540)%360-180)).toFixed(0)+'°';$('k-cos').textContent=cs.toFixed(3);$('k-z').textContent=z.toFixed(2);
+    $('k-p').textContent=(p*100).toFixed(1)+'%';$('k-pb').style.width=p*100+'%';
+    $('k-warn').innerHTML=a<0?'<div class="warn">⚠ a &lt; 0: quanto <b>mais parecido</b>, <b>menor</b> a chance. O ranking inteiro inverte. É exatamente o que aconteceu no primeiro treino do projeto.</div>':''}
+  function draw(){const{x,w,h}=fit(c),cx=w/2,cy=h/2,R=Math.min(w,h)/2-30;x.clearRect(0,0,w,h);
+    x.strokeStyle='#222a3d';x.lineWidth=1.5;x.beginPath();x.arc(cx,cy,R,0,7);x.stroke();
+    const ix=cx+Math.cos(itemAng)*R,iy=cy+Math.sin(itemAng)*R,ux=cx+Math.cos(ang)*R,uy=cy+Math.sin(ang)*R;
+    x.strokeStyle='#4cc9f055';x.fillStyle='#4cc9f01a';x.beginPath();x.moveTo(cx,cy);x.arc(cx,cy,R*.35,Math.min(ang,itemAng),Math.max(ang,itemAng));x.closePath();x.fill();
+    x.strokeStyle='#4cc9f0';x.lineWidth=3;x.beginPath();x.moveTo(cx,cy);x.lineTo(ix,iy);x.stroke();x.fillStyle='#4cc9f0';x.beginPath();x.arc(ix,iy,8,0,7);x.fill();x.font='12px system-ui';x.textAlign='left';x.fillText('v (anime)',ix-70,iy-14);
+    x.strokeStyle='#ffd75a';x.beginPath();x.moveTo(cx,cy);x.lineTo(ux,uy);x.stroke();x.fillStyle='#ffd75a';x.beginPath();x.arc(ux,uy,11,0,7);x.fill();x.fillStyle='#0a0d14';x.font='bold 11px system-ui';x.textAlign='center';x.fillText('u',ux,uy+4);
+    x.fillStyle='#8d96ad';x.font='12px system-ui';x.textAlign='center';x.fillText('arraste a bolinha amarela',cx,h-8)}
+  function setFrom(e){const r=c.getBoundingClientRect(),t=e.touches?e.touches[0]:e;ang=Math.atan2(t.clientY-r.top-r.height/2,t.clientX-r.left-r.width/2);upd();draw()}
+  c.onpointerdown=e=>{drag=true;c.setPointerCapture(e.pointerId);c.style.cursor='grabbing';setFrom(e)};c.onpointermove=e=>drag&&setFrom(e);c.onpointerup=()=>{drag=false;c.style.cursor='grab'};
+  $('sa').oninput=$('sb').oninput=upd;addEventListener('resize',draw);upd();draw()})();
+
+/* ---------- 3 · split ---------- */
+(function(){
+  const N=40,users=[];seed=5;for(let i=0;i<N;i++){const te=i>=32;users.push({te,v:Math.max(4,Math.min(10,7+gauss()*.7+(te?1.1:0)))})}
+  const pool=$('pool');users.forEach((u,i)=>{const d=document.createElement('div');d.className='u'+(u.te?' te':'');d.textContent='';u.el=d;pool.append(d)});
+  let split=false;
+  function place(){const W=pool.clientWidth,H=pool.clientHeight;pool.classList.toggle('split',split);
+    users.forEach((u,i)=>{let x,y;if(!split){const cols=10,gx=(W-cols*32)/2,r=Math.floor(i/cols),cc=i%cols;x=gx+cc*32+((i*37)%7);y=40+r*40+((i*13)%9)}
+      else if(!u.te){const idx=i,cols=8,r=Math.floor(idx/cols),cc=idx%cols;x=24+cc*34;y=48+r*42}
+      else{const idx=i-32,cols=2,r=Math.floor(idx/cols),cc=idx%cols;x=W*.78+20+cc*34;y=48+r*42}
+      u.el.style.transform=`translate(${x}px,${y}px)`})}
+  function stats(){const tr=users.filter(u=>!u.te),te=users.filter(u=>u.te),m=a=>a.reduce((s,u)=>s+u.v,0)/a.length,leak=$('sp-leak').checked;
+    $('sp-mu').textContent=(leak?m(users):m(tr)).toFixed(3);$('sp-mu').style.color=leak?'#fca5a5':'#8be9ad';$('sp-mute').textContent=m(te).toFixed(3);
+    users.forEach(u=>u.el.classList.toggle('leak',leak&&u.te&&split));
+    $('sp-msg').innerHTML=!split?'Clique em "Dividir" para separar os usuários.':leak?`<b>Vazamento!</b> Os usuários de teste (anéis vermelhos) entraram no cálculo do μ. A normalização já "conhece" o teste, e a avaliação fica otimista.`:`<b>Certo:</b> o μ vem só do treino (${tr.length} usuários). O teste continua sendo território desconhecido.`}
+  $('sp-go').onclick=()=>{split=true;place();stats()};$('sp-reset').onclick=()=>{split=false;$('sp-leak').checked=false;place();stats()};$('sp-leak').onchange=stats;addEventListener('resize',place);place();stats();
+  const tl=$('tl');seed=21;const rs=Array.from({length:20},()=>Math.max(1,Math.min(10,Math.round(7.4+gauss()*1.6))));
+  const draw=(m)=>{tl.innerHTML=rs.map((r,i)=>`<div class="${m?m[i]:''}${r>=8?' like':''}">${r}${m&&m[i]==='g'?`<small>y=${r>=8?1:0}</small>`:''}${m&&m[i]==='h'&&r>=8?'<small>perfil</small>':''}</div>`).join('')};
+  draw(null);$('tl-go').onclick=()=>{const idx=rs.map((_,i)=>i).sort(()=>rnd()-.5),m=Array(20).fill('h');idx.slice(10).forEach(i=>m[i]='g');draw(m)}})();
+
+/* ---------- 4 · pré-processamento ---------- */
+(function(){
+  const GN=['action','comedy','drama','fantasy','romance','sci-fi','school','mecha'],TY=['TV','Movie','OVA','Special'];let gs=new Set(['action','fantasy']),ty='TV';
+  $('pp-g').innerHTML=GN.map(g=>`<span class="chip${gs.has(g)?' on':''}" data-v="${g}">${g}</span>`).join('');
+  $('pp-t').innerHTML=TY.map(t=>`<span class="chip${t==ty?' on':''}" data-v="${t}">${t}</span>`).join('');
+  $('pp-g').onclick=e=>{const v=e.target.dataset.v;if(!v)return;gs.has(v)?gs.delete(v):gs.add(v);e.target.classList.toggle('on');rg()};
+  $('pp-t').onclick=e=>{const v=e.target.dataset.v;if(!v)return;ty=v;[...$('pp-t').children].forEach(c=>c.classList.toggle('on',c.dataset.v===v));rg()};
+  function rg(){$('pp-gv').innerHTML=GN.map(g=>`<i class="${gs.has(g)?'on':''}" title="${g}">${gs.has(g)?1:0}</i>`).join('');$('pp-tv').innerHTML=TY.map(t=>`<i class="${t==ty?'on':''}" title="${t}">${t==ty?1:0}</i>`).join('')}
+  function rn(){const e=+$('pp-es').value,l=Math.log1p(e),z=(l-2.1)/1.4;$('pp-e').textContent=e;$('pp-l').textContent=l.toFixed(3);$('pp-z').textContent=z.toFixed(3);$('pp-zd').style.left=(50+Math.max(-3,Math.min(3,z))/3*45)+'%'}
+  $('pp-es').oninput=rn;rg();rn()})();
+
+/* ---------- 5 · AUC + Recall@K ---------- */
+(function(){
+  const c=$('cv-auc'),pdf=(z,m)=>Math.exp(-.5*(z-m)**2)/Math.sqrt(2*Math.PI);
+  function draw(){const d=+$('au-d').value,t=+$('au-t').value;$('au-dv').textContent=d.toFixed(2);$('au-tv').textContent=t.toFixed(2);
+    const{x,w,h}=fit(c),L=10,R=10,B=26,xs=v=>L+(v+3.5)/(9.5)*(w-L-R),ys=p=>h-B-p*(h-B-14)/.42;x.clearRect(0,0,w,h);
+    [[0,'#f87171','não gostou'],[d,'#4ade80','gostou']].forEach(([m,col,lb])=>{
+      x.beginPath();x.moveTo(xs(-3.5),ys(0));for(let v=-3.5;v<=6;v+=.05)x.lineTo(xs(v),ys(pdf(v,m)));x.lineTo(xs(6),ys(0));x.closePath();x.fillStyle=col+'22';x.fill();x.strokeStyle=col;x.lineWidth=2;x.stroke();
+      x.fillStyle=col;x.font='600 12px system-ui';x.textAlign='center';x.fillText(lb,xs(m),ys(.4)-8);
+      x.beginPath();x.moveTo(xs(t),ys(0));for(let v=t;v<=6;v+=.05)x.lineTo(xs(v),ys(pdf(v,m)));x.lineTo(xs(6),ys(0));x.closePath();x.fillStyle=col+'55';x.fill()});
+    x.strokeStyle='#ffd75a';x.lineWidth=2;x.setLineDash([5,4]);x.beginPath();x.moveTo(xs(t),8);x.lineTo(xs(t),h-B);x.stroke();x.setLineDash([]);
+    x.fillStyle='#8d96ad';x.font='11px system-ui';x.fillText('score do modelo →',w/2,h-6);
+    $('au-auc').textContent=Phi(d/Math.SQRT2).toFixed(3);$('au-tpr').textContent=(100*(1-Phi(t-d))).toFixed(1)+'%';$('au-fpr').textContent=(100*(1-Phi(t))).toFixed(1)+'%'}
+  $('au-d').oninput=$('au-t').oninput=()=>{draw();rec()};addEventListener('resize',draw);
+  seed=3;const rm=Array.from({length:30},(_,i)=>rnd()<Math.max(.1,.74-i*.017)),rp=Array.from({length:30},(_,i)=>rnd()<Math.max(.05,.3-i*.006));
+  const tm=rm.filter(Boolean).length+4,tp=rp.filter(Boolean).length+4; // havia mais relevantes fora da lista
+  function rec(){const k=+$('rc-k').value;$('rc-kv').textContent=k;
+    const mk=(arr)=>arr.map((r,i)=>`<i class="${r?'rel':''}${i===k-1?' cut':''}"></i>`).join('');$('rc-m').innerHTML=mk(rm);$('rc-p').innerHTML=mk(rp);
+    $('rc-rm').textContent=(100*rm.slice(0,k).filter(Boolean).length/tm).toFixed(0)+'%';$('rc-rp').textContent=(100*rp.slice(0,k).filter(Boolean).length/tp).toFixed(0)+'%'}
+  $('rc-k').oninput=rec;draw();rec()})();
+
+/* ---------- 6 · HNSW ---------- */
+(function(){
+  const c=$('cv-hnsw');seed=99;const pts=Array.from({length:320},()=>({x:.04+rnd()*.92,y:.06+rnd()*.88}));
+  const L2=pts.map((_,i)=>i).filter(i=>i%40===0),L1=pts.map((_,i)=>i).filter(i=>i%8===0),L0=pts.map((_,i)=>i);
+  const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  function nbrs(layer,K){const m={};layer.forEach(i=>{m[i]=layer.filter(j=>j!==i).sort((a,b)=>dist(pts[i],pts[a])-dist(pts[i],pts[b])).slice(0,K)});return m}
+  const N2=nbrs(L2,4),N1=nbrs(L1,5),N0=nbrs(L0,6),layers=[[L2,N2,'#ff9f6e'],[L1,N1,'#4ade80'],[L0,N0,'#8b7cff']];
+  let q={x:.62,y:.4},steps=[],shown=0,evals=0,timer=null,W,H;
+  function search(){steps=[];evals=0;let cur=L2[0];const seen=new Set();
+    layers.forEach(([L,N,col],li)=>{ if(li>0&&!L.includes(cur)){cur=L.reduce((b,i)=>dist(pts[i],pts[cur])<dist(pts[b],pts[cur])?i:b,L[0]);evals+=L.length>50?0:0}
+      let best=dist(pts[cur],q);evals++;steps.push({li,i:cur,col});
+      for(;;){let nb=null,bd=best;N[cur].forEach(j=>{evals++;const d=dist(pts[j],q);if(d<bd){bd=d;nb=j}});if(nb===null)break;cur=nb;best=bd;steps.push({li,i:cur,col})}});
+    let bf=0,bi=0,bb=9;pts.forEach((p,i)=>{bf++;const d=dist(p,q);if(d<bb){bb=d;bi=i}});steps.nearest=bi;$('hn-bf').textContent=bf+' (100%)';$('hn-h').textContent=evals+' ('+(evals/bf*100).toFixed(0)+'%)'}
+  function draw(){const{x,w,h}=fit(c);W=w;H=h;x.clearRect(0,0,w,h);const P=p=>[p.x*w,p.y*h];
+    pts.forEach((p,i)=>{const[a,b]=P(p);x.fillStyle='#8b7cff55';x.beginPath();x.arc(a,b,2,0,7);x.fill()});
+    [L1,L2].forEach((L,k)=>L.forEach(i=>{const[a,b]=P(pts[i]);x.fillStyle=k?'#ff9f6e':'#4ade80';x.beginPath();x.arc(a,b,k?5:3.4,0,7);x.fill()}));
+    const vis=steps.slice(0,shown);x.lineWidth=2.2;
+    for(let s=1;s<vis.length;s++){const A=P(pts[vis[s-1].i]),B=P(pts[vis[s].i]);x.strokeStyle=vis[s].col;x.beginPath();x.moveTo(...A);x.lineTo(...B);x.stroke()}
+    vis.forEach(s=>{const[a,b]=P(pts[s.i]);x.strokeStyle=s.col;x.lineWidth=2;x.beginPath();x.arc(a,b,7,0,7);x.stroke()});
+    if(shown>=steps.length&&steps.length){const[a,b]=P(pts[steps.nearest]);x.strokeStyle='#fff';x.lineWidth=2.5;x.beginPath();x.arc(a,b,10,0,7);x.stroke()}
+    const[qx,qy]=P(q);x.fillStyle='#ffd75a';x.font='26px system-ui';x.textAlign='center';x.fillText('★',qx,qy+9)}
+  function run(){clearInterval(timer);search();shown=REDUCED?steps.length:0;draw();if(REDUCED)return;timer=setInterval(()=>{shown++;draw();if(shown>=steps.length)clearInterval(timer)},320)}
+  c.onclick=e=>{const r=c.getBoundingClientRect();q={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};run()};
+  $('hn-again').onclick=run;addEventListener('resize',draw);
+  new IntersectionObserver((es,o)=>{if(es[0].isIntersecting){run();o.disconnect()}},{threshold:.4}).observe(c)})();
+</script>
+</body></html>
